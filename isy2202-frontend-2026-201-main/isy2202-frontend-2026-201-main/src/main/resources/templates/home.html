@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetas Saludables</title>
+    <link rel="stylesheet" th:href="@{/recetas.css}">
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>🍎 Recetas Saludables</h1>
+            <a id="loginLink" th:href="@{/login}">Iniciar Sesión</a>
+            <a id="logoutLink" href="#" style="display:none; margin-left: 15px;">Cerrar sesión</a>
+            <a th:href="@{/buscar}" style="margin-left: 15px;">Buscar recetas</a>
+        </nav>
+    </header>
+
+    <div class="banner-frutera">
+        <h2>🥬 La Frutería del Bienestar 🥕</h2>
+        <p>Descubre recetas deliciosas hechas con frutas y verduras frescas</p>
+        <p class="destacado">✓ Ingredientes 100% Naturales | ✓ Recetas Saludables | ✓ Fácil de Preparar</p>
+    </div>
+
+    <div class="container">
+        <section class="introduccion">
+            <h2>Bienvenido a Nuestro Recetario</h2>
+            <p>
+                En nuestro recetario encontrarás una amplia variedad de recetas saludables.
+                Aquí podrás revisar recetas recientes y populares, además de acceder al detalle
+                completo una vez que inicies sesión.
+            </p>
+        </section>
+
+        <section class="introduccion">
+            <h2>Recetas recientes y populares</h2>
+            <p>Explora algunas de nuestras recetas destacadas:</p>
+        </section>
+
+        <section class="recetas-grid" id="recetasGrid">
+            <p style="grid-column: 1/-1; text-align: center;">Cargando recetas...</p>
+        </section>
+
+        <section class="beneficios">
+            <h2>Beneficios de Comer Frutas y Verduras</h2>
+            <div class="beneficios-list">
+                <div class="beneficio-item">
+                    <h4>💪 Fortalece el Cuerpo</h4>
+                    <p>Las frutas y verduras proporcionan vitaminas y minerales esenciales.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>🧠 Mejora la Cognición</h4>
+                    <p>Los antioxidantes ayudan a mejorar la memoria y la concentración.</p>
+                </div>
+                <div class="beneficio-item">
+                    <h4>❤️ Cuidado del Corazón</h4>
+                    <p>Promueven una mejor salud cardiovascular.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 La Frutería del Bienestar - Recetas Saludables</p>
+        <p><a th:href="@{/recetas}">Volver al inicio</a></p>
+    </footer>
+
+    <script>
+        const backendUrl = '/api/recipes';
+
+        function actualizarMenuSesion() {
+            const token = localStorage.getItem('jwtToken');
+            const loginLink = document.getElementById('loginLink');
+            const logoutLink = document.getElementById('logoutLink');
+
+            if (token) {
+                loginLink.style.display = 'none';
+                logoutLink.style.display = 'inline-block';
+            } else {
+                loginLink.style.display = 'inline-block';
+                logoutLink.style.display = 'none';
+            }
+
+            logoutLink.onclick = function (e) {
+                e.preventDefault();
+                localStorage.removeItem('jwtToken');
+                localStorage.removeItem('username');
+                window.location.href = '/recetas';
+            };
+        }
+
+        async function loadRecipes() {
+            const token = localStorage.getItem('jwtToken');
+
+            try {
+                const response = await fetch(backendUrl, {
+                    headers: {
+                        'Authorization': token || ''
+                    }
+                });
+
+                if (!response.ok) {
+                    document.getElementById('recetasGrid').innerHTML = '<p>Error al cargar recetas.</p>';
+                    return;
+                }
+
+                const recipes = await response.json();
+                renderRecipes(recipes);
+            } catch (e) {
+                document.getElementById('recetasGrid').innerHTML = '<p>Error de conexión con el backend.</p>';
+            }
+        }
+
+        function renderRecipes(recipes) {
+            const grid = document.getElementById('recetasGrid');
+            grid.innerHTML = '';
+
+            if (!recipes || recipes.length === 0) {
+                grid.innerHTML = '<p>No hay recetas disponibles.</p>';
+                return;
+            }
+
+            recipes.forEach(r => {
+                const card = document.createElement('article');
+                card.className = 'receta-card';
+
+                const imageHtml = (r.photos && r.photos.length > 0)
+                    ? `<img src="${r.photos[0]}" alt="${r.name}" style="width:100%; height:200px; object-fit:cover;">`
+                    : '';
+
+                card.innerHTML = `
+                    ${imageHtml}
+                    <div class="receta-header">
+                        <h3>${r.name}</h3>
+                    </div>
+                    <div class="receta-body">
+                        <div class="receta-info">
+                            <span><strong>⏱️</strong> ${r.cookTimeMinutes} min</span>
+                            <span><strong>🌍</strong> ${r.countryOfOrigin}</span>
+                        </div>
+                        <p><strong>Dificultad:</strong> ${r.difficulty}</p>
+                        <p><a href="/detalle/${r.id}">Ver detalle</a></p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+            actualizarMenuSesion();
+            loadRecipes();
+        });
+    </script>
+</body>
+</html>

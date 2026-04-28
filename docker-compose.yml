@@ -1,0 +1,31 @@
+services:
+  mysql-isy2202-1:
+    image: mysql/mysql-server:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+
+  backend:
+    build: ./isy2202-backend-2026-201-main\isy2202-backend-2026-201-main  # Ajusta la ruta a tu proyecto backend
+    ports:
+      - "8081:8080"
+    depends_on:
+      - mysql-isy2202-1
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-isy2202-1:3306/mydatabase
+      SPRING_DATASOURCE_USERNAME: myuser
+      SPRING_DATASOURCE_PASSWORD: password
+
+  frontend:
+    build: ./isy2202-frontend-2026-201-main # Ajusta la ruta a tu proyecto frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    environment:
+      # Esta variable debe coincidir con la que uses en tu RestTemplate
+      BACKEND_URL: http://backend:8080

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle de receta</title>
+    <link rel="stylesheet" th:href="@{/recetas.css}">
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>📖 Detalle de Receta</h1>
+            <a th:href="@{/recetas}">Inicio</a>
+            <a th:href="@{/buscar}" style="margin-left: 15px;">Buscar recetas</a>
+            <a id="loginLink" th:href="@{/login}" style="margin-left: 15px;">Iniciar sesión</a>
+            <a id="logoutLink" href="#" style="display:none; margin-left: 15px;">Cerrar sesión</a>
+        </nav>
+    </header>
+
+    <div class="banner-frutera">
+        <h2>Conoce todos los detalles de la receta</h2>
+        <p>Ingredientes, preparación, tiempo de cocción, dificultad y fotografías.</p>
+    </div>
+
+    <div class="container">
+        <section class="introduccion">
+            <h2>Receta seleccionada</h2>
+
+            <div id="recetaData" th:attr="data-id=${idReceta}"></div>
+
+            <div id="detalleReceta">
+                <p>Cargando detalle...</p>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 La Frutería del Bienestar - Recetas Saludables</p>
+        <p><a th:href="@{/recetas}">Volver al inicio</a></p>
+    </footer>
+
+    <script>
+        function actualizarMenuSesion() {
+            const token = localStorage.getItem('jwtToken');
+            const loginLink = document.getElementById('loginLink');
+            const logoutLink = document.getElementById('logoutLink');
+
+            if (token) {
+                loginLink.style.display = 'none';
+                logoutLink.style.display = 'inline-block';
+            } else {
+                loginLink.style.display = 'inline-block';
+                logoutLink.style.display = 'none';
+            }
+
+            logoutLink.onclick = function (e) {
+                e.preventDefault();
+                localStorage.removeItem('jwtToken');
+                localStorage.removeItem('username');
+                window.location.href = '/recetas';
+            };
+        }
+
+        async function cargarDetalle() {
+            const contenedor = document.getElementById('detalleReceta');
+            const idReceta = document.getElementById('recetaData').dataset.id;
+            const token = localStorage.getItem('jwtToken');
+
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/recipes/' + idReceta, {
+                    headers: {
+                        'Authorization': token
+                    }
+                });
+
+                if (!response.ok) {
+                    contenedor.innerHTML = '<p>No fue posible cargar el detalle de la receta.</p>';
+                    return;
+                }
+
+                const r = await response.json();
+
+                const ingredientes = (r.ingredients || [])
+                    .map(i => `<li>${i}</li>`)
+                    .join('');
+
+                const fotos = (r.photos || [])
+                    .map(f => `<img src="${f}" alt="${r.name}" style="max-width:300px; display:block; margin-bottom:10px;">`)
+                    .join('');
+
+                contenedor.innerHTML = `
+                    <article class="receta-card">
+                        <div class="receta-header">
+                            <h3>${r.name}</h3>
+                        </div>
+                        <div class="receta-body">
+                            <p><strong>Tipo de cocina:</strong> ${r.cuisineType || 'No informado'}</p>
+                            <p><strong>País de origen:</strong> ${r.countryOfOrigin || 'No informado'}</p>
+                            <p><strong>Dificultad:</strong> ${r.difficulty || 'No informada'}</p>
+                            <p><strong>Tiempo de cocción:</strong> ${r.cookTimeMinutes || 'No informado'} minutos</p>
+
+                            <h4>Ingredientes</h4>
+                            <ul>${ingredientes || '<li>No hay ingredientes disponibles.</li>'}</ul>
+
+                            <h4>Instrucciones</h4>
+                            <p>${r.instructions || 'No hay instrucciones disponibles.'}</p>
+
+                            <h4>Fotografías</h4>
+                            ${fotos || '<p>No hay imágenes disponibles.</p>'}
+                        </div>
+                    </article>
+                `;
+            } catch (error) {
+                contenedor.innerHTML = '<p>Error de conexión con el backend.</p>';
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', function () {
+            actualizarMenuSesion();
+            cargarDetalle();
+        });
+    </script>
+</body>
+</html>

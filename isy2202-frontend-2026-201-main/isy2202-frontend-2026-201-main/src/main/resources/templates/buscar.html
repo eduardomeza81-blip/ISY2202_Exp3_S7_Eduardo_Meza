@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Buscar recetas</title>
+    <link rel="stylesheet" th:href="@{/recetas.css}">
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>🔎 Buscar Recetas</h1>
+            <a th:href="@{/recetas}">Inicio</a>
+            <a th:href="@{/login}" style="margin-left: 15px;">Iniciar Sesión</a>
+        </nav>
+    </header>
+
+    <div class="banner-frutera">
+        <h2>Encuentra tu receta ideal</h2>
+        <p>Busca por nombre, tipo de cocina, ingredientes, país de origen o dificultad.</p>
+    </div>
+
+    <div class="container">
+        <section class="introduccion">
+            <h2>Búsqueda pública de recetas</h2>
+
+            <form id="searchForm" style="display:grid; gap:10px; max-width:600px;">
+                <input type="text" id="name" placeholder="Nombre de la receta">
+                <input type="text" id="cuisineType" placeholder="Tipo de cocina">
+                <input type="text" id="ingredients" placeholder="Ingredientes">
+                <input type="text" id="countryOfOrigin" placeholder="País de origen">
+                <select id="difficulty">
+                    <option value="">Todas las dificultades</option>
+                    <option value="Facil">Fácil</option>
+                    <option value="Media">Media</option>
+                    <option value="Dificil">Difícil</option>
+                </select>
+                <button type="submit">Buscar</button>
+            </form>
+        </section>
+
+        <section class="recetas-grid" id="resultadosBusqueda">
+            <p>Ingresa criterios y presiona buscar.</p>
+        </section>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 La Frutería del Bienestar - Recetas Saludables</p>
+        <p><a th:href="@{/recetas}">Volver al inicio</a></p>
+    </footer>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const resultados = document.getElementById('resultadosBusqueda');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const params = new URLSearchParams({
+                name: document.getElementById('name').value,
+                cuisineType: document.getElementById('cuisineType').value,
+                ingredients: document.getElementById('ingredients').value,
+                countryOfOrigin: document.getElementById('countryOfOrigin').value,
+                difficulty: document.getElementById('difficulty').value
+            });
+
+            try {
+                const response = await fetch('/api/recipes/search?' + params.toString());
+
+                if (!response.ok) {
+                    resultados.innerHTML = '<p>Error al buscar recetas.</p>';
+                    return;
+                }
+
+                const recipes = await response.json();
+                resultados.innerHTML = '';
+
+                if (!recipes || recipes.length === 0) {
+                    resultados.innerHTML = '<p>No se encontraron recetas.</p>';
+                    return;
+                }
+
+                recipes.forEach(r => {
+                    const card = document.createElement('article');
+                    card.className = 'receta-card';
+
+                    const imageHtml = (r.photos && r.photos.length > 0)
+                        ? `<img src="${r.photos[0]}" alt="${r.name}" style="width:100%; height:200px; object-fit:cover;">`
+                        : '';
+
+                    card.innerHTML = `
+                        ${imageHtml}
+                        <div class="receta-header">
+                            <h3>${r.name}</h3>
+                        </div>
+                        <div class="receta-body">
+                            <p><strong>Tipo:</strong> ${r.cuisineType || 'No informado'}</p>
+                            <p><strong>País:</strong> ${r.countryOfOrigin || 'No informado'}</p>
+                            <p><strong>Dificultad:</strong> ${r.difficulty || 'No informada'}</p>
+                            <p><a href="/detalle/${r.id}">Ver detalle</a></p>
+                        </div>
+                    `;
+                    resultados.appendChild(card);
+                });
+            } catch (error) {
+                resultados.innerHTML = '<p>Error de conexión con el backend.</p>';
+            }
+        });
+    </script>
+</body>
+</html>

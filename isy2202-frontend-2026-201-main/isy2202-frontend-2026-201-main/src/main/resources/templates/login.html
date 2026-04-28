@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    
+    <title>Inicio de sesión</title>
+    <link rel="stylesheet" type="text/css" th:href="@{/login.css}">
+</head>
+<body>
+    <div id="loginError" style="color: red; margin-bottom: 10px;"></div>
+
+    <form id="loginForm">
+        <div>
+            <label>Usuario:
+                <input type="text" name="username"/>
+            </label>
+        </div>
+
+        <div>
+            <label>Contraseña:
+                <input type="password" name="password"/>
+            </label>
+        </div>
+
+        <div>
+            <input type="submit" value="Ingresar"/>
+        </div>
+    </form>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const username = event.target.username.value.trim();
+            const password = event.target.password.value.trim();
+            const errorBox = document.getElementById('loginError');
+            errorBox.textContent = '';
+
+            if (!username || !password) {
+                errorBox.textContent = 'Debes ingresar usuario y contraseña';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                let data;
+                const bodyText = await response.text();
+
+                if (bodyText) {
+                    try {
+                        data = JSON.parse(bodyText);
+                    } catch (parseError) {
+                        data = { message: bodyText };
+                    }
+                } else {
+                    data = {};
+                }
+
+                if (!response.ok) {
+                    const message = data.message || data.error || bodyText || 'Error de autenticación';
+                    errorBox.textContent = message;
+                    return;
+                }
+
+                const rawToken = data.token || data.accessToken || data.jwt || data.bearer || data.authToken || bodyText;
+
+                if (!rawToken) {
+                    errorBox.textContent = 'No se recibió token JWT del backend';
+                    return;
+                }
+
+                const bearerToken = rawToken.startsWith('Bearer ') ? rawToken : `Bearer ${rawToken}`;
+                localStorage.setItem('jwtToken', bearerToken);
+                localStorage.setItem('username', username);
+
+                window.location.href = '/recetas';
+            } catch (err) {
+                errorBox.textContent = err.message || 'Error al conectar con el backend';
+            }
+        });
+    </script>
+</body>
+</html>
